@@ -17,6 +17,8 @@ Auth::routes();
 
 Route::get('/settings', 'SettingsController@index')->name('settings')->middleware('auth');
 Route::get('/vacations', 'VacationController@index')->name('vacations')->middleware('auth');
+Route::get('/holidayYears', 'HolidayYearController@index')->middleware('auth');
+Route::post('/holidayYears/sync', 'HolidayYearController@sync')->middleware('auth');
 
 Route::get('/', function () {
     return view('welcome');
@@ -41,6 +43,5 @@ Route::post('/addVacation', 'VacationController@addVacation')->middleware('auth'
 Route::post('/getAllUsersVacations', 'VacationController@getAllUsersVacations');
 Route::get('/getVacationCard/{id}', 'VacationController@getVacationCard')->middleware('auth');
 Route::post('/deleteVacation', 'VacationController@deleteVacation')->middleware('auth');
-
 
 

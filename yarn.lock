@@ -1018,10 +1018,10 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
   integrity sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==
 
-"@formkit/auto-animate@^1.0.0-beta.7":
-  version "1.0.0-pre-alpha.3"
-  resolved "https://registry.yarnpkg.com/@formkit/auto-animate/-/auto-animate-1.0.0-pre-alpha.3.tgz#8e6143a6232700e5be31f74fc6faffde05ce4e24"
-  integrity sha512-lMVZ3LFUIu0RIxCEwmV8nUUJQ46M2bv2NDU3hrhZivViuR1EheC8Mj5sx/ACqK5QLK8XB8z7GDIZBUGdU/9OZQ==
+"@formkit/auto-animate@^0.9.0":
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/@formkit/auto-animate/-/auto-animate-0.9.0.tgz#6fd9ecfe36ed88796cc8a07e6b44d7c9c7f61a47"
+  integrity sha512-VhP4zEAacXS3dfTpJpJ88QdLqMTcabMg0jwpOSxZ/VzfQVfl3GkZSCZThhGC5uhq/TxPHPzW0dzr4H9Bb1OgKA==
 
 "@jridgewell/gen-mapping@^0.3.0", "@jridgewell/gen-mapping@^0.3.2":
   version "0.3.3"

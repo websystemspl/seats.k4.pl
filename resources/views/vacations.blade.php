@@ -12,9 +12,8 @@
 
         <section class="flex flex-col break-words bg-white sm:border-1 sm:rounded-md sm:shadow-lg">
 
-            <header class="font-semibold bg-gray-200 text-gray-700 py-5 px-6 sm:py-6 sm:px-8 sm:rounded-t-md flex justify-between">
+            <header class="font-semibold bg-gray-200 text-gray-700 py-5 px-6 sm:py-6 sm:px-8 sm:rounded-t-md">
                 <p>{{ __('Urlopy') }}</p>
-                <p><small>Wykorzystanych dni: <span id="count-vacation-days">{{ $countVacationDays }}</span></small></p>
             </header>
 
             <div class="w-full" id="vacations"></div>

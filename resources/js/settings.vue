@@ -1,5 +1,32 @@
 <template>
     <div class="relative p-6">
+        <div class="mb-6 rounded border border-gray-200 bg-gray-50 p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Święta w sobotę</p>
+                    <p class="text-sm text-gray-600">Wylicz liczbę dni do odbioru dla wybranego roku.</p>
+                </div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div>
+                        <label for="holidayYear" class="form-label inline-block mb-1 text-gray-700">Rok</label>
+                        <input type="number" min="1970" max="2100" class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none border-gray-300" v-model="holidayYear" id="holidayYear" />
+                    </div>
+                    <button type="button" data-mdb-ripple="true" data-mdb-ripple-color="light" @click="syncHolidayYear()" :disabled="holidaySyncLoading" class="inline-block px-4 py-2 bg-blue-600 text-white font-medium text-xs leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out disabled:opacity-50">Przelicz</button>
+                </div>
+            </div>
+            <p v-if="holidaySyncResult" class="mt-3 text-sm text-gray-600">Rok {{ holidaySyncResult.year }}: {{ holidaySyncResult.saturday_holiday_count }} dni do odbioru</p>
+            <p v-if="holidaySyncError" class="mt-3 text-sm text-red-500">{{ holidaySyncError }}</p>
+            <div v-if="holidayYears.length" class="mt-4">
+                <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Dostępne lata</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div v-for="holidayYear in holidayYears" :key="holidayYear.year" class="flex items-center justify-between rounded border border-gray-200 bg-white px-3 py-2">
+                        <span class="text-sm text-gray-600">{{ holidayYear.year }}</span>
+                        <span class="text-sm font-semibold text-gray-800">{{ holidayYear.saturday_holiday_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <ul v-auto-animate>
             <draggable v-model="employees" 
                 group="employees" 
@@ -102,10 +129,23 @@ export default {
             employees: [],
             name: null,
             workingTime: null,
-            errors: []
+            errors: [],
+            holidayYear: new Date().getFullYear(),
+            holidayYears: [],
+            holidaySyncLoading: false,
+            holidaySyncResult: null,
+            holidaySyncError: null
         };
     },
     methods: {
+        async getHolidayYears() {
+            try {
+                const response = await axios.get('/holidayYears');
+                this.holidayYears = response.data.holidayYears || [];
+            } catch (e) {
+                this.holidayYears = [];
+            }
+        },
         getEmployees() {
             const self = this;
             fetch('/users')
@@ -115,6 +155,25 @@ export default {
                 .then(function(data) {
                     self.employees = data.users;
                 })
+        },
+        async syncHolidayYear() {
+            this.holidaySyncLoading = true;
+            this.holidaySyncError = null;
+            this.holidaySyncResult = null;
+            const year = parseInt(this.holidayYear, 10);
+            if (Number.isNaN(year)) {
+                this.holidaySyncError = 'Podaj poprawny rok.';
+                this.holidaySyncLoading = false;
+                return;
+            }
+            try {
+                const response = await axios.post('/holidayYears/sync', { year });
+                this.holidaySyncResult = response.data.holidayYear;
+                await this.getHolidayYears();
+            } catch (e) {
+                this.holidaySyncError = 'Nie udało się przeliczyć świąt. Spróbuj ponownie.';
+            }
+            this.holidaySyncLoading = false;
         },
         openPopup(action, employeeId = null) {
             this.popup = true;
@@ -211,6 +270,7 @@ export default {
     },
     mounted() {
         this.getEmployees();
+        this.getHolidayYears();
     }
 }
 </script>

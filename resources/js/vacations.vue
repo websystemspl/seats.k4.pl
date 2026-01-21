@@ -1,5 +1,18 @@
 <template>
     <div class="relative p-6">
+        <div class="mb-6">
+            <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Podsumowanie urlopów</p>
+            <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" v-if="orderedYears.length">
+                <div v-for="year in orderedYears" :key="year" class="rounded border border-gray-200 bg-gray-50 px-3 py-2">
+                    <div class="flex flex-col space-y-1">
+                        <span class="text-sm text-gray-600">{{ year }}</span>
+                        <span class="text-xs text-gray-500">Wykorzystane: <span class="font-semibold text-gray-800">{{ vacationDaysByYear[year] }}</span></span>
+                        <span class="text-xs text-gray-500">Do odbioru: <span v-if="holidayDaysByYear[year] !== null" class="font-semibold text-gray-800">{{ holidayDaysByYear[year] }}</span><span v-else class="text-gray-400">brak</span></span>
+                    </div>
+                </div>
+            </div>
+            <p v-else-if="vacationDaysByYearLoaded" class="mt-3 text-sm text-gray-500">Brak danych.</p>
+        </div>
         <ul v-auto-animate>
             <li class="p-2 flex justify-between items-center even:bg-gray-50 odd:bg-white" v-for="(vacation, index) in vacations" :key="index">
                 <span><small>{{ (index + 1).toString().padStart(2, '0') }}.</small> {{ formatDate(vacation.start_date) }} - {{ formatDate(vacation.end_date) }}</span>
@@ -77,9 +90,24 @@ export default {
             action: null,
             workingTime: null,
             vacations: [],
+            vacationDaysByYear: {},
+            vacationDaysByYearLoaded: false,
+            holidayDaysByYear: {},
+            holidayDaysByYearLoaded: false,
             errors: [],
             requestDate: null
         };
+    },
+    computed: {
+        orderedYears() {
+            const years = new Set([
+                ...Object.keys(this.vacationDaysByYear),
+                ...Object.keys(this.holidayDaysByYear)
+            ]);
+            return Array.from(years)
+                .map(Number)
+                .sort((a, b) => b - a);
+        }
     },
     methods: {
         async getVacations() {
@@ -88,6 +116,10 @@ export default {
                 const response = await axios.get('/getUserVacations');
                 this.vacations = response.data.vacations;
                 this.workingTime = response.data.workingTime;
+                this.vacationDaysByYear = response.data.vacationDaysByYear || {};
+                this.vacationDaysByYearLoaded = true;
+                this.holidayDaysByYear = response.data.holidayDaysByYear || {};
+                this.holidayDaysByYearLoaded = true;
             } catch (e) {
                 console.log(e);
             }
@@ -118,7 +150,12 @@ export default {
                 });
                 if (response.data.errors.length === 0) {
                     this.vacations = response.data.vacations;
-                    document.getElementById('count-vacation-days').innerHTML = response.data.countVacationDays;
+                    this.vacationDaysByYear = response.data.vacationDaysByYear || this.vacationDaysByYear;
+                    this.vacationDaysByYearLoaded = true;
+                    if (response.data.holidayDaysByYear) {
+                        this.holidayDaysByYear = response.data.holidayDaysByYear;
+                        this.holidayDaysByYearLoaded = true;
+                    }
                     this.closePopup();
                 } else {
                     this.errors = response.data.errors;
@@ -136,7 +173,12 @@ export default {
                 });
                 if (response.data) {
                     this.vacations = response.data.vacations;
-                    document.getElementById('count-vacation-days').innerHTML = response.data.countVacationDays;
+                    this.vacationDaysByYear = response.data.vacationDaysByYear || this.vacationDaysByYear;
+                    this.vacationDaysByYearLoaded = true;
+                    if (response.data.holidayDaysByYear) {
+                        this.holidayDaysByYear = response.data.holidayDaysByYear;
+                        this.holidayDaysByYearLoaded = true;
+                    }
                 } else {
                     this.errors = response.data.errors;
                 }
