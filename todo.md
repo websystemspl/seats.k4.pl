@@ -19,14 +19,16 @@
 
 ### Panel admina (biuro@web-systems.pl)
 
-- [ ] Widok zbiorczy urlopów wszystkich pracowników
-- [ ] Konfiguracja rocznego limitu dni urlopowych per pracownik
-- [ ] Nanoszenie zmian w limitach (korekty, urlopy specjalne)
-- [ ] Automatyczne obliczanie:
-  - Ile dni urlopu przysługuje w danym roku
-  - Ile dni już wykorzystano
-  - Ile dni pozostało do wykorzystania
-  - Ile dni przeniesiono z poprzedniego roku (zaległy urlop)
+- [x] Widok zbiorczy urlopów wszystkich pracowników (zakładka "Wszyscy pracownicy")
+- [x] Filtrowanie pracowników checkboxami
+- [x] Tabela uprawnień urlopowych (staż, wymiar, wykorzystane, pozostałe)
+- [x] Kalendarz roczny z zaznaczonymi urlopami
+- [x] Konfiguracja stażu pracy per pracownik (data rozpoczęcia, wykształcenie)
+- [x] Automatyczne obliczanie wymiaru urlopu (20/26 dni wg stażu)
+- [x] Logowanie zmian stażu pracy (audit trail)
+- [x] Oznaczenie BETA
+- [ ] Konfiguracja rocznego limitu dni urlopowych (korekty, urlopy specjalne)
+- [ ] Przeniesienie urlopu z poprzedniego roku (zaległy urlop)
 - [ ] Raporty zbiorcze:
   - Zestawienie urlopów per pracownik (rok)
   - Wykorzystanie urlopów w firmie (procentowe)
@@ -35,17 +37,24 @@
 
 ### Panel pracownika
 
-- [ ] Podgląd własnego bilansu urlopowego:
-  - Limit roczny
-  - Wykorzystane dni
-  - Pozostałe dni
-  - Zaległy urlop z poprzedniego roku
+- [x] Podgląd własnego bilansu urlopowego (wymiar, wykorzystane, pozostałe)
+- [x] Kalendarz roczny własnych urlopów
 - [ ] Status wniosku (oczekujący/zatwierdzony/odrzucony)
+
+### Ustawienia (Settings)
+
+- [x] Podział na widgety: Pracownicy i Święta
+- [x] Dane stażu pracy per pracownik (data rozpoczęcia, wykształcenie, data ukończenia)
+- [x] Wyliczanie stażu z uwzględnieniem pokrywających się okresów nauki i pracy
+- [x] Info o urlopie na żądanie (4 dni z puli)
+- [x] Opcja włącz/wyłącz pracownika
 
 ### Dane archiwalne
 
-- [ ] Import danych archiwalnych (po uruchomieniu funkcjonalności)
-- [ ] Historia urlopów z poprzednich lat
+- [x] Import danych archiwalnych Konrada (2024)
+- [x] Import brakującego urlopu Dariusza (30.10.2024)
+- [ ] Korekta rozbieżności (patrz uwagi poniżej)
+- [ ] Historia urlopów z poprzednich lat - dalsze importy
 
 ## 3. Poprawki bezpieczeństwa
 
