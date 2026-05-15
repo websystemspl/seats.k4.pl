@@ -12,11 +12,12 @@
 
         <section class="flex flex-col break-words bg-white sm:border-1 sm:rounded-md sm:shadow-lg">
 
-            <header class="font-semibold bg-gray-200 text-gray-700 py-5 px-6 sm:py-6 sm:px-8 sm:rounded-t-md">
+            <header class="font-semibold bg-gray-200 text-gray-700 py-5 px-6 sm:py-6 sm:px-8 sm:rounded-t-md flex items-center justify-between">
                 <p>{{ __('Urlopy') }}</p>
+                <span class="inline-block px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-orange-700 bg-orange-100 border border-orange-300 rounded">BETA</span>
             </header>
 
-            <div class="w-full" id="vacations"></div>
+            <div class="w-full" id="vacations" data-is-admin="{{ Auth::user()->is_admin ? '1' : '0' }}"></div>
         </section>
     </div>
 </main>

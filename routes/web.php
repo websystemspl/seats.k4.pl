@@ -32,8 +32,11 @@ Route::post('/changeStatus', [UserController::class, 'changeStatus'])->middlewar
 Route::post('/deleteUser', [UserController::class, 'deleteUser'])->middleware('auth');
 Route::post('/editUser', [UserController::class, 'editUser'])->middleware('auth');
 Route::post('/updateOrder', [UserController::class, 'updateOrder'])->middleware('auth');
+Route::post('/updateEmployment', [UserController::class, 'updateEmployment'])->middleware('auth');
+Route::get('/employmentLogs/{userId}', [UserController::class, 'getEmploymentLogs'])->middleware('auth');
 
 Route::get('/getUserVacations', [VacationController::class, 'getUserVacations'])->middleware('auth');
+Route::get('/getAdminVacations', [VacationController::class, 'getAdminVacations'])->middleware('auth');
 Route::post('/addVacation', [VacationController::class, 'addVacation'])->middleware('auth');
 Route::post('/getAllUsersVacations', [VacationController::class, 'getAllUsersVacations']);
 Route::get('/getVacationCard/{id}', [VacationController::class, 'getVacationCard'])->middleware('auth');

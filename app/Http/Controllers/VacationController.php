@@ -13,11 +13,6 @@ use Illuminate\Support\Facades\Auth;
 
 class VacationController extends Controller
 {
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
     public function index()
     {
         return view('vacations');
@@ -25,13 +20,63 @@ class VacationController extends Controller
 
     public function getUserVacations(Request $request)
     {
-        $vacations = Vacation::where('user_id', Auth::user()->id)->orderBy('start_date')->get();
-        $workingTime = Auth::user()->working_time;
-        $vacationDaysByYear = $this->countVacationDaysByYearForAuthedUser();
+        $user = Auth::user();
+        $vacations = Vacation::where('user_id', $user->id)->orderBy('start_date')->get();
+        $workingTime = $user->working_time;
+        $vacationDaysByYear = $this->countVacationDaysByYearForUser($user->id);
         $holidayDaysByYear = $this->getHolidayDaysByYear();
         $currentYear = Carbon::now()->year;
         $countVacationDays = $vacationDaysByYear[$currentYear] ?? 0;
-        return response()->json( compact('vacations', 'workingTime', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays'));
+
+        $tenure = round($user->calculateTenureYears(), 1);
+        $entitlement = $user->getVacationEntitlement();
+        $isAdmin = (bool) $user->is_admin;
+
+        return response()->json(compact(
+            'vacations', 'workingTime', 'vacationDaysByYear',
+            'holidayDaysByYear', 'countVacationDays',
+            'tenure', 'entitlement', 'isAdmin'
+        ));
+    }
+
+    public function getAdminVacations(Request $request)
+    {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['error' => 'Brak uprawnień'], 403);
+        }
+
+        $year = $request->input('year', Carbon::now()->year);
+        $userIds = $request->input('user_ids', []);
+
+        $usersQuery = User::orderBy('order');
+        $users = $usersQuery->get();
+
+        $vacationsQuery = Vacation::where(function ($q) use ($year) {
+            $q->where('start_date', '<=', $year . '-12-31')
+              ->where('end_date', '>=', $year . '-01-01');
+        })->orderBy('start_date');
+
+        if (!empty($userIds)) {
+            $vacationsQuery->whereIn('user_id', $userIds);
+        }
+
+        $vacations = $vacationsQuery->get();
+
+        $holidays = $this->getHolidays($year, $year);
+
+        $entitlements = [];
+        foreach ($users as $user) {
+            $usedDays = $this->countVacationDaysByYearForUser($user->id, $year, $year);
+            $entitlements[$user->id] = [
+                'tenure' => round($user->calculateTenureYears(), 1),
+                'total_days' => $user->getVacationEntitlement(),
+                'on_demand' => 4,
+                'used' => $usedDays[$year] ?? 0,
+                'remaining' => $user->getVacationEntitlement() - ($usedDays[$year] ?? 0),
+            ];
+        }
+
+        return response()->json(compact('users', 'vacations', 'holidays', 'entitlements', 'year'));
     }
 
     public function addVacation(Request $request)
@@ -68,7 +113,7 @@ class VacationController extends Controller
             $errors[] = __('Data końca urlopu nie może być wcześniejsza niż data początku urlopu.');
         }
         $vacations = Vacation::where('user_id', Auth::user()->id)->orderBy('start_date')->get();
-        $vacationDaysByYear = $this->countVacationDaysByYearForAuthedUser();
+        $vacationDaysByYear = $this->countVacationDaysByYearForUser(Auth::user()->id);
         $holidayDaysByYear = $this->getHolidayDaysByYear();
         $currentYear = Carbon::now()->year;
         $countVacationDays = $vacationDaysByYear[$currentYear] ?? 0;
@@ -98,7 +143,8 @@ class VacationController extends Controller
         $requestDate = Carbon::parse($vacation->request_date);
         $holidays = $this->getHolidays($startDate->year, $endDate->year);
         $workingDays = $this->countWorkingDays($startDate, $endDate, $holidays);
-        $vacationDays = $workingDays - $vacation->days_off;
+        $daysOff = (int) ($vacation->days_off ?? 0);
+        $vacationDays = $workingDays - $daysOff;
         $vacationHours = $vacationDays * $vacation->working_time;
         $data = [
             'vacation' => $vacation,
@@ -136,7 +182,7 @@ class VacationController extends Controller
         return $count;
     }
 
-    private function getHolidays($startYear, $endYear) 
+    private function getHolidays($startYear, $endYear)
     {
         $holidays = [];
         $years = range($startYear, $endYear);
@@ -157,38 +203,15 @@ class VacationController extends Controller
                     $holidays[] = $holiday['date'];
                 }
             } catch (\Exception $e) {
-                echo "Wystąpił błąd: " . $e->getMessage() . "\n";
+                // silently continue
             }
         }
         return array_values(array_unique($holidays));
     }
 
-    public function countAllVacationDaysInCurrentYearForAuthedUser()
+    private function countVacationDaysByYearForUser(int $userId, int $startYear = 2024, ?int $endYear = null)
     {
-        $currentYear = Carbon::now()->year;
-        $vacations = Vacation::where('user_id', Auth::user()->id)->where('start_date', '>=', $currentYear . '-01-01')->where('end_date', '<=', $currentYear . '-12-31')->get();
-        $countVacationDays = 0;
-        foreach ($vacations as $vacation) {
-            $startDate = Carbon::parse($vacation->start_date);
-            $endDate = Carbon::parse($vacation->end_date);
-            $holidays = $this->getHolidays($startDate->year, $endDate->year);
-            $workingDays = $this->countWorkingDays($startDate, $endDate, $holidays);
-            $countVacationDays += $workingDays - $vacation->days_off;
-        }
-        $vacations = Vacation::where('user_id', Auth::user()->id)->where('end_date', '>', $currentYear . '-12-31')->get();
-        foreach ($vacations as $vacation) {
-            $startDate = Carbon::parse($vacation->start_date);
-            $endDate = Carbon::parse($currentYear . '-12-31');
-            $holidays = $this->getHolidays($startDate->year, $endDate->year);
-            $workingDays = $this->countWorkingDays($startDate, $endDate, $holidays);
-            $countVacationDays += $workingDays - $vacation->days_off;
-        }
-        return $countVacationDays;
-    }
-
-    private function countVacationDaysByYearForAuthedUser(int $startYear = 2024)
-    {
-        $currentYear = Carbon::now()->year;
+        $currentYear = $endYear ?? Carbon::now()->year;
         if ($currentYear < $startYear) {
             $startYear = $currentYear;
         }
@@ -200,7 +223,7 @@ class VacationController extends Controller
 
         $rangeStart = Carbon::create($startYear, 1, 1);
         $rangeEnd = Carbon::create($currentYear, 12, 31);
-        $vacations = Vacation::where('user_id', Auth::user()->id)
+        $vacations = Vacation::where('user_id', $userId)
             ->where('end_date', '>=', $rangeStart->toDateString())
             ->where('start_date', '<=', $rangeEnd->toDateString())
             ->orderBy('start_date')
@@ -296,11 +319,10 @@ class VacationController extends Controller
         $vacation = Vacation::find($request->vacationId);
         $vacation->delete();
         $vacations = Vacation::where('user_id', Auth::user()->id)->orderBy('start_date')->get();
-        $vacationDaysByYear = $this->countVacationDaysByYearForAuthedUser();
+        $vacationDaysByYear = $this->countVacationDaysByYearForUser(Auth::user()->id);
         $holidayDaysByYear = $this->getHolidayDaysByYear();
         $currentYear = Carbon::now()->year;
         $countVacationDays = $vacationDaysByYear[$currentYear] ?? 0;
         return response()->json( compact('vacations', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays'));
     }
-
 }
