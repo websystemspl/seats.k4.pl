@@ -2,13 +2,18 @@
 
 ## 1. Aktualizacja technologiczna
 
-- [ ] Aktualizacja Laravel z 8.x do najnowszej wersji (12.x)
-- [ ] Aktualizacja PHP do 8.4 lub 8.5
-- [ ] Aktualizacja Vue 3 i zależności npm
-- [ ] Migracja z Laravel Mix na Vite
-- [ ] Aktualizacja Tailwind CSS do najnowszej wersji
-- [ ] Przegląd i aktualizacja wszystkich paczek Composer
-- [ ] Usunięcie przestarzałych paczek (fruitcake/laravel-cors - wbudowane od Laravel 9)
+- [x] Aktualizacja Laravel z 8.x do 12.x
+- [x] Aktualizacja PHP do 8.4
+- [x] Aktualizacja Vue 3 i zależności npm
+- [x] Migracja z Laravel Mix na Vite
+- [x] Przegląd i aktualizacja wszystkich paczek Composer
+- [x] Usunięcie przestarzałych paczek (fruitcake/laravel-cors, facade/ignition, beyondcode/dump-server)
+- [x] Nowa struktura Laravel 12 (bootstrap/app.php, usunięcie Kernel.php, middleware w framework)
+- [x] Migracje: klasy anonimowe, password_resets -> password_reset_tokens, cascadeOnDelete
+- [x] Routing: array syntax zamiast string controller references
+- [x] Modele: $dates -> $casts, casts() method na User
+- [ ] Testy na serwerze produkcyjnym (wymaga ext-xml, ext-mbstring, ext-mysql)
+- [ ] Migracja istniejącej bazy danych (rename password_resets -> password_reset_tokens)
 
 ## 2. Moduł zarządzania urlopami (rozszerzenie)
 
@@ -52,6 +57,6 @@
 ## 4. Usprawnienia techniczne
 
 - [ ] Dodanie relacji Eloquent (hasMany/belongsTo) zamiast ręcznych query
-- [ ] Kaskadowe usuwanie na poziomie bazy (foreign key constraints)
+- [x] Kaskadowe usuwanie na poziomie bazy (foreign key constraints) - dodane w migracjach
 - [ ] Testy jednostkowe i integracyjne
 - [ ] CI/CD pipeline

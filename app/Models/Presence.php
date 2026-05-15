@@ -11,6 +11,9 @@ class Presence extends Model
 
     public $timestamps = false;
 
-    protected $dates = ['date'];
     protected $fillable = ['user_id', 'date'];
+
+    protected $casts = [
+        'date' => 'datetime',
+    ];
 }
