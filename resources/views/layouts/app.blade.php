@@ -18,14 +18,14 @@
             <nav class="bg-k4dark border-gray-200 px-2 sm:px-4 py-2.5">
                 <div class="container flex flex-wrap items-center justify-between mx-auto">
                     <a href="{{ url('/') }}" class="flex items-center gap-3">
-                        <!-- Office desk/chair icon -->
-                        <svg class="w-8 h-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
-                            <path d="M5 11a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-2z"/>
-                            <path d="M8 9V7a4 4 0 0 1 8 0v2"/>
+                        <!-- Office chair icon -->
+                        <svg class="w-10 h-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 11a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-2z"/>
+                            <path d="M9 9V7a3 3 0 0 1 6 0v2"/>
                             <path d="M12 14v3"/>
-                            <path d="M8 20h8"/>
+                            <path d="M9 20h6"/>
                             <path d="M10 17h4"/>
-                            <path d="M7 14l-2 6M17 14l2 6"/>
+                            <path d="M8 14l-2 6M16 14l2 6"/>
                         </svg>
                         <!-- K4 logo -->
                         <svg class="w-16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 750 750" xmlSpace="preserve">
