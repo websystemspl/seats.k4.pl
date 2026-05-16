@@ -14,7 +14,9 @@
 
             <header class="font-semibold bg-gray-200 text-gray-700 py-5 px-6 sm:py-6 sm:px-8 sm:rounded-t-md flex items-center justify-between">
                 <p>{{ __('Urlopy') }}</p>
-                <span class="inline-block px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-orange-700 bg-orange-100 border border-orange-300 rounded cursor-help" title="Wersja rozwojowa — jeśli zauważysz błąd, zgłoś go proszę administratorowi.">BETA</span>
+                <span class="relative group inline-block px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-orange-700 bg-orange-100 border border-orange-300 rounded cursor-help">BETA
+                    <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded bg-gray-800 px-3 py-2 text-[11px] font-normal normal-case tracking-normal text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-50">Wersja rozwojowa — jeśli zauważysz błąd, zgłoś go proszę administratorowi.</span>
+                </span>
             </header>
 
             <div class="w-full" id="vacations" data-is-admin="{{ Auth::user()->is_admin ? '1' : '0' }}"></div>
