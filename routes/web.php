@@ -41,3 +41,4 @@ Route::post('/addVacation', [VacationController::class, 'addVacation'])->middlew
 Route::post('/getAllUsersVacations', [VacationController::class, 'getAllUsersVacations']);
 Route::get('/getVacationCard/{id}', [VacationController::class, 'getVacationCard'])->middleware('auth');
 Route::post('/deleteVacation', [VacationController::class, 'deleteVacation'])->middleware('auth');
+Route::post('/updateCarryover', [VacationController::class, 'updateCarryover'])->middleware('auth');

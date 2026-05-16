@@ -11,10 +11,18 @@ class Vacation extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'start_date', 'end_date'];
+    protected $fillable = [
+        'user_id', 'start_date', 'end_date', 'working_time',
+        'request_date', 'days_off', 'carryover_from_year',
+    ];
 
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

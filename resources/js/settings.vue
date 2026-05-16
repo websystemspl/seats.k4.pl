@@ -5,10 +5,14 @@
         <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
             <div class="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 rounded-t-lg">
                 <h2 class="text-sm font-bold uppercase tracking-widest text-gray-600">Pracownicy</h2>
+                <label class="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                    <input type="checkbox" v-model="hideInactive" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" />
+                    Ukryj nieaktywnych
+                </label>
             </div>
             <div class="p-4">
                 <ul v-auto-animate>
-                    <draggable v-model="employees"
+                    <draggable v-model="visibleEmployees"
                         group="employees"
                         @start="drag=true"
                         @end="endDrag"
@@ -212,6 +216,7 @@ export default {
             employeeId: null,
             action: null,
             employees: [],
+            hideInactive: true,
             name: null,
             workingTime: null,
             errors: [],
@@ -227,6 +232,23 @@ export default {
         };
     },
     computed: {
+        visibleEmployees: {
+            get() {
+                if (this.hideInactive) {
+                    return this.employees.filter(e => e.is_active);
+                }
+                return this.employees;
+            },
+            set(val) {
+                if (this.hideInactive) {
+                    const inactiveIds = this.employees.filter(e => !e.is_active).map(e => e.id);
+                    const inactive = this.employees.filter(e => inactiveIds.includes(e.id));
+                    this.employees = [...val, ...inactive];
+                } else {
+                    this.employees = val;
+                }
+            }
+        },
         currentEmployeeName() {
             if (!this.employeeId) return '';
             const emp = this.employees.find(e => e.id === this.employeeId);

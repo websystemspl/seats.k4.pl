@@ -15,12 +15,15 @@
         <div v-if="activeTab === 'my'">
 
             <!-- Entitlement summary -->
-            <div v-if="entitlement" class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
+            <div v-if="hasEmploymentData" class="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
                 <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
                     <span class="text-gray-600">Wymiar: <span class="font-semibold" :class="entitlement >= 26 ? 'text-green-600' : 'text-blue-600'">{{ entitlement }} dni</span></span>
                     <span class="text-gray-600" v-if="tenure">Staż: <span class="font-semibold">{{ formatTenure(tenure) }}</span></span>
                     <span class="text-gray-400 text-xs">(w tym 4 dni na żądanie)</span>
                 </div>
+            </div>
+            <div v-else class="mb-4 p-3 bg-yellow-50 rounded border border-yellow-200">
+                <p class="text-sm text-yellow-700">Brak danych o stażu pracy. Wymiar urlopu zostanie wyliczony po uzupełnieniu danych przez administratora.</p>
             </div>
 
             <!-- Year summaries -->
@@ -31,7 +34,8 @@
                         <span class="text-sm text-gray-600">{{ year }}</span>
                         <div class="flex flex-col space-y-0.5 mt-1">
                             <span class="text-xs text-gray-500">Wykorzystane: <span class="font-semibold text-gray-800">{{ vacationDaysByYear[year] || 0 }}</span></span>
-                            <span v-if="entitlement" class="text-xs text-gray-500">Pozostało: <span class="font-semibold" :class="(entitlement - (vacationDaysByYear[year] || 0)) > 0 ? 'text-green-600' : 'text-red-600'">{{ entitlement - (vacationDaysByYear[year] || 0) }}</span></span>
+                            <span v-if="hasEmploymentData" class="text-xs text-gray-500">Pozostało: <span class="font-semibold" :class="(entitlement - (vacationDaysByYear[year] || 0)) > 0 ? 'text-green-600' : 'text-red-600'">{{ entitlement - (vacationDaysByYear[year] || 0) }}</span></span>
+                            <span v-if="carryover[year]" class="text-xs text-orange-600">Przeniesione z {{ carryover[year].from_year }}: <span class="font-semibold">{{ carryover[year].days }}</span> dni</span>
                             <span class="text-xs text-gray-500">Do odbioru: <span v-if="holidayDaysByYear[year] !== null && holidayDaysByYear[year] !== undefined" class="font-semibold text-gray-800">{{ holidayDaysByYear[year] }}</span><span v-else class="text-gray-400">brak</span></span>
                         </div>
                     </div>
@@ -74,7 +78,11 @@
             <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Lista urlopów</p>
             <ul v-auto-animate>
                 <li class="p-2 flex justify-between items-center even:bg-gray-50 odd:bg-white" v-for="(vacation, index) in vacations" :key="vacation.id || index">
-                    <span><small class="text-gray-400">{{ (index + 1).toString().padStart(2, '0') }}.</small> {{ formatDate(vacation.start_date) }} - {{ formatDate(vacation.end_date) }}</span>
+                    <span>
+                        <small class="text-gray-400">{{ (index + 1).toString().padStart(2, '0') }}.</small>
+                        {{ formatDate(vacation.start_date) }} - {{ formatDate(vacation.end_date) }}
+                        <span v-if="vacation.carryover_from_year" class="ml-1 text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded font-medium">zaległy z {{ vacation.carryover_from_year }}</span>
+                    </span>
                     <div class="flex gap-1">
                         <button class="px-2 py-1 bg-blue-500 text-white text-xs rounded shadow-sm hover:bg-blue-600 transition" @click="getVacationCard(vacation.id)" title="PDF">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-white" viewBox="0 -960 960 960"><path d="M640-640v-120H320v120h-80v-200h480v200h-80Zm-480 80h640-640Zm560 100q17 0 28.5-11.5T760-500q0-17-11.5-28.5T720-540q-17 0-28.5 11.5T680-500q0 17 11.5 28.5T720-460Zm-80 260v-160H320v160h320Zm80 80H240v-160H80v-240q0-51 35-85.5t85-34.5h560q51 0 85.5 34.5T880-520v240H720v160Zm80-240v-160q0-17-11.5-28.5T760-560H200q-17 0-28.5 11.5T160-520v160h80v-80h480v80h80Z"/></svg>
@@ -105,13 +113,19 @@
 
             <!-- Employee filter -->
             <div class="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
-                <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Filtruj pracowników</p>
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Filtruj pracowników</p>
+                    <label class="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+                        <input type="checkbox" v-model="adminHideInactive" @change="filterAdminVacations" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-3 w-3" />
+                        Ukryj nieaktywnych
+                    </label>
+                </div>
                 <div class="flex flex-wrap gap-x-4 gap-y-1">
                     <label class="text-xs text-gray-500 cursor-pointer flex items-center gap-1 mr-3">
                         <input type="checkbox" :checked="allEmployeesSelected" @change="toggleAllEmployees" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-3 w-3" />
                         <span class="font-semibold">Wszyscy</span>
                     </label>
-                    <label v-for="user in adminUsers" :key="user.id" class="text-xs text-gray-600 cursor-pointer flex items-center gap-1">
+                    <label v-for="user in filterableAdminUsers" :key="user.id" class="text-xs text-gray-600 cursor-pointer flex items-center gap-1">
                         <input type="checkbox" :value="user.id" v-model="selectedUserIds" @change="filterAdminVacations" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-3 w-3" />
                         {{ user.name }}
                     </label>
@@ -126,23 +140,32 @@
                             <th class="px-3 py-2 text-left text-gray-600 font-semibold">Pracownik</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Staż</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Wymiar</th>
+                            <th class="px-3 py-2 text-center text-gray-600 font-semibold">Zaległy</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Wykorzystane</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Pozostało</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="user in filteredAdminUsers" :key="user.id" class="border-t border-gray-100 even:bg-gray-50">
-                            <td class="px-3 py-1.5 text-gray-700">{{ user.name }}</td>
+                            <td class="px-3 py-1.5 text-gray-700">
+                                {{ user.name }}
+                                <span v-if="!adminEntitlements[user.id]?.has_employment_data" class="text-[9px] text-yellow-600 block">brak danych o stażu</span>
+                            </td>
                             <td class="px-3 py-1.5 text-center text-gray-500">
-                                <template v-if="adminEntitlements[user.id]">{{ formatTenure(adminEntitlements[user.id].tenure) }}</template>
+                                <template v-if="adminEntitlements[user.id]?.has_employment_data">{{ formatTenure(adminEntitlements[user.id].tenure) }}</template>
                                 <span v-else class="text-gray-300">-</span>
                             </td>
                             <td class="px-3 py-1.5 text-center font-semibold" :class="adminEntitlements[user.id]?.total_days >= 26 ? 'text-green-600' : 'text-blue-600'">
-                                {{ adminEntitlements[user.id]?.total_days || '-' }}
+                                {{ adminEntitlements[user.id]?.has_employment_data ? adminEntitlements[user.id]?.total_days : '-' }}
+                            </td>
+                            <td class="px-3 py-1.5 text-center text-orange-600">
+                                <template v-if="adminEntitlements[user.id]?.carryover_from_prev !== null && adminEntitlements[user.id]?.carryover_from_prev > 0">{{ adminEntitlements[user.id].carryover_from_prev }}</template>
+                                <span v-else-if="adminEntitlements[user.id]?.has_employment_data" class="text-gray-300">0</span>
+                                <span v-else class="text-gray-300">-</span>
                             </td>
                             <td class="px-3 py-1.5 text-center text-gray-700">{{ adminEntitlements[user.id]?.used ?? '-' }}</td>
                             <td class="px-3 py-1.5 text-center font-semibold" :class="(adminEntitlements[user.id]?.remaining ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'">
-                                {{ adminEntitlements[user.id]?.remaining ?? '-' }}
+                                {{ adminEntitlements[user.id]?.has_employment_data ? (adminEntitlements[user.id]?.remaining ?? '-') : '-' }}
                             </td>
                         </tr>
                     </tbody>
@@ -185,6 +208,7 @@
                             <th class="px-3 py-2 text-left text-gray-600 font-semibold">Pracownik</th>
                             <th class="px-3 py-2 text-left text-gray-600 font-semibold">Od</th>
                             <th class="px-3 py-2 text-left text-gray-600 font-semibold">Do</th>
+                            <th class="px-3 py-2 text-left text-gray-600 font-semibold"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -192,9 +216,29 @@
                             <td class="px-3 py-1.5 text-gray-700">{{ getUserName(vac.user_id) }}</td>
                             <td class="px-3 py-1.5 text-gray-600">{{ formatDate(vac.start_date) }}</td>
                             <td class="px-3 py-1.5 text-gray-600">{{ formatDate(vac.end_date) }}</td>
+                            <td class="px-3 py-1.5">
+                                <span v-if="vac.carryover_from_year" class="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded font-medium">zaległy z {{ vac.carryover_from_year }}</span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Vacation rules info (both user and admin) -->
+        <div class="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+            <button @click="showRules = !showRules" class="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-xs font-semibold uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition">
+                Zasady urlopu wypoczynkowego
+                <span class="text-gray-400">{{ showRules ? '▲' : '▼' }}</span>
+            </button>
+            <div v-if="showRules" class="p-4 text-xs text-gray-600 space-y-2 bg-white">
+                <p><span class="font-semibold">Wymiar urlopu:</span> 20 dni (staż &lt; 10 lat) lub 26 dni (staż &ge; 10 lat).</p>
+                <p><span class="font-semibold">Urlop na żądanie:</span> 4 dni z przysługującej puli (20 lub 26 dni).</p>
+                <p><span class="font-semibold">Wykształcenie wyższe a staż:</span> Ukończenie studiów (licencjat lub magister) wlicza się jako 8 lat stażu pracy. Licencjat i magister nie sumują się — liczy się tylko 8 lat z tytułu ukończenia szkoły wyższej.</p>
+                <p><span class="font-semibold">Próg 26 dni:</span> Po studiach (8 lat) trzeba przepracować na etacie jeszcze 2 lata, aby uzyskać wymiar 26 dni.</p>
+                <p><span class="font-semibold">Pierwsza praca:</span> W roku podjęcia pierwszej pracy urlop nabywa się proporcjonalnie — 1/12 z 20 dni za każdy przepracowany miesiąc (~1,66 dnia).</p>
+                <p><span class="font-semibold">Urlop zaległy:</span> Niewykorzystany urlop przenosi się na rok następny i powinien zostać wykorzystany do 30 września.</p>
+                <p class="text-gray-400 italic">Źródło: Kodeks Pracy art. 154 §1, art. 155 §1, art. 168 — stan na 2026 r.</p>
             </div>
         </div>
 
@@ -268,11 +312,14 @@ export default {
             endDate: null,
             tenure: null,
             entitlement: null,
+            hasEmploymentData: false,
             isAdmin: false,
             activeTab: 'my',
             calendarYear: new Date().getFullYear(),
             calendarMonths: [],
             calendarHolidays: [],
+            carryover: {},
+            showRules: false,
 
             adminYear: new Date().getFullYear(),
             adminUsers: [],
@@ -281,6 +328,7 @@ export default {
             adminEntitlements: {},
             adminCalendarMonths: [],
             selectedUserIds: [],
+            adminHideInactive: true,
         };
     },
     computed: {
@@ -291,12 +339,18 @@ export default {
             ]);
             return Array.from(years).map(Number).sort((a, b) => b - a);
         },
+        filterableAdminUsers() {
+            if (this.adminHideInactive) {
+                return this.adminUsers.filter(u => u.is_active);
+            }
+            return this.adminUsers;
+        },
         allEmployeesSelected() {
-            return this.adminUsers.length > 0 && this.selectedUserIds.length === this.adminUsers.length;
+            return this.filterableAdminUsers.length > 0 && this.selectedUserIds.length === this.filterableAdminUsers.length;
         },
         filteredAdminUsers() {
-            if (this.selectedUserIds.length === 0) return this.adminUsers;
-            return this.adminUsers.filter(u => this.selectedUserIds.includes(u.id));
+            if (this.selectedUserIds.length === 0) return this.filterableAdminUsers;
+            return this.filterableAdminUsers.filter(u => this.selectedUserIds.includes(u.id));
         },
         filteredAdminVacations() {
             if (this.selectedUserIds.length === 0) return this.adminVacations;
@@ -330,7 +384,7 @@ export default {
             if (this.allEmployeesSelected) {
                 this.selectedUserIds = [];
             } else {
-                this.selectedUserIds = this.adminUsers.map(u => u.id);
+                this.selectedUserIds = this.filterableAdminUsers.map(u => u.id);
             }
             this.filterAdminVacations();
         },
@@ -457,7 +511,9 @@ export default {
                 this.holidayDaysByYearLoaded = true;
                 this.tenure = response.data.tenure;
                 this.entitlement = response.data.entitlement;
+                this.hasEmploymentData = response.data.hasEmploymentData || false;
                 this.isAdmin = response.data.isAdmin || false;
+                this.carryover = response.data.carryover || {};
                 this.loadCalendarHolidays();
             } catch (e) {
                 console.error(e);

@@ -30,12 +30,15 @@ class VacationController extends Controller
 
         $tenure = round($user->calculateTenureYears(), 1);
         $entitlement = $user->getVacationEntitlement();
+        $hasEmploymentData = (bool) $user->employment_start_date;
         $isAdmin = (bool) $user->is_admin;
+
+        $carryover = $this->calculateCarryover($user->id, $vacationDaysByYear, $entitlement, $hasEmploymentData);
 
         return response()->json(compact(
             'vacations', 'workingTime', 'vacationDaysByYear',
             'holidayDaysByYear', 'countVacationDays',
-            'tenure', 'entitlement', 'isAdmin'
+            'tenure', 'entitlement', 'hasEmploymentData', 'isAdmin', 'carryover'
         ));
     }
 
@@ -46,37 +49,53 @@ class VacationController extends Controller
         }
 
         $year = $request->input('year', Carbon::now()->year);
-        $userIds = $request->input('user_ids', []);
 
-        $usersQuery = User::orderBy('order');
-        $users = $usersQuery->get();
+        $users = User::orderBy('order')->get();
 
-        $vacationsQuery = Vacation::where(function ($q) use ($year) {
+        $vacations = Vacation::where(function ($q) use ($year) {
             $q->where('start_date', '<=', $year . '-12-31')
               ->where('end_date', '>=', $year . '-01-01');
-        })->orderBy('start_date');
-
-        if (!empty($userIds)) {
-            $vacationsQuery->whereIn('user_id', $userIds);
-        }
-
-        $vacations = $vacationsQuery->get();
+        })->orderBy('start_date')->get();
 
         $holidays = $this->getHolidays($year, $year);
 
         $entitlements = [];
         foreach ($users as $user) {
-            $usedDays = $this->countVacationDaysByYearForUser($user->id, $year, $year);
+            $usedDays = $this->countVacationDaysByYearForUser($user->id, $year - 1, $year);
+            $ent = $user->getVacationEntitlement();
+            $hasData = (bool) $user->employment_start_date;
+            $prevYearUsed = $usedDays[$year - 1] ?? 0;
+            $carryoverFromPrev = $hasData ? max(0, $ent - $prevYearUsed) : null;
+
             $entitlements[$user->id] = [
                 'tenure' => round($user->calculateTenureYears(), 1),
-                'total_days' => $user->getVacationEntitlement(),
+                'total_days' => $ent,
                 'on_demand' => 4,
                 'used' => $usedDays[$year] ?? 0,
-                'remaining' => $user->getVacationEntitlement() - ($usedDays[$year] ?? 0),
+                'remaining' => $ent - ($usedDays[$year] ?? 0),
+                'carryover_from_prev' => $carryoverFromPrev,
+                'has_employment_data' => $hasData,
             ];
         }
 
         return response()->json(compact('users', 'vacations', 'holidays', 'entitlements', 'year'));
+    }
+
+    public function updateCarryover(Request $request)
+    {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['error' => 'Brak uprawnień'], 403);
+        }
+
+        $vacation = Vacation::find($request->vacationId);
+        if (!$vacation) {
+            return response()->json(['error' => 'Nie znaleziono urlopu'], 404);
+        }
+
+        $vacation->carryover_from_year = $request->carryover_from_year;
+        $vacation->save();
+
+        return response()->json(compact('vacation'));
     }
 
     public function addVacation(Request $request)
@@ -158,6 +177,34 @@ class VacationController extends Controller
         ];
         $pdf = Pdf::loadView('vacationCard', $data);
         return $pdf->stream('pdf_file.pdf');
+    }
+
+    private function calculateCarryover(int $userId, array $vacationDaysByYear, int $entitlement, bool $hasEmploymentData): array
+    {
+        if (!$hasEmploymentData) {
+            return [];
+        }
+
+        $carryover = [];
+        $years = array_keys($vacationDaysByYear);
+        sort($years);
+
+        foreach ($years as $i => $year) {
+            if ($i === 0) continue;
+            $prevYear = $years[$i - 1];
+            if ($prevYear !== $year - 1) continue;
+
+            $prevUsed = $vacationDaysByYear[$prevYear] ?? 0;
+            $remaining = max(0, $entitlement - $prevUsed);
+            if ($remaining > 0) {
+                $carryover[$year] = [
+                    'from_year' => $prevYear,
+                    'days' => $remaining,
+                ];
+            }
+        }
+
+        return $carryover;
     }
 
     private function countWorkingDays($startDate, $endDate, $holidays)
