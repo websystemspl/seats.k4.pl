@@ -17,8 +17,8 @@
         <header>
             <nav class="bg-k4dark border-gray-200 px-2 sm:px-4 py-2.5">
                 <div class="container flex flex-wrap items-center justify-between mx-auto">
-                    <a href="{{ url('/') }}" class="flex items-center">
-                        <svg class="w-16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 750 750" xmlSpace="preserve" class="QYCgpAJfeMCVB1x7xzz9 QubB07L3HSo1mvsypeLs xi3AllYKY8dOlOc5nm7K">
+                    <a href="{{ url('/') }}" class="flex items-center gap-2">
+                        <svg class="w-16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 750 750" xmlSpace="preserve">
                             <g>
                                 <path class="fill-k4pink" d="M29.1,177.8h68v141.7l106.6-141.7h85.2L139.5,374.8l151.3,198h-85.9L97,430.1v88.2H29.1V177.8z"></path>
                                 <path class="fill-k4pink" d="M455.3,428.6V178.1h-82L224.2,375.3l90.9,120.6l72.9-0.2v76.9h67.3v-76.7h20.4V463h15.7v-34.4H455.3zM388,428.6H266.8l121.2-160V428.6z"></path>
@@ -30,6 +30,11 @@
                                 c-7.3-7.6-10.9-17.7-10.9-30c0-12.1,3.6-21.9,10.9-29.5c7.3-7.5,16.4-11.3,27.4-11.3c10.9,0,20,3.8,27.2,11.5
                                 c7.2,7.6,10.8,17.4,10.8,29.4C633.1,463.8,629.5,473.8,622.2,481.5z"></path>
                             </g>
+                        </svg>
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-60">
+                            <path d="M7 18v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2" stroke="white" opacity="0.6"/>
+                            <path d="M7 18H5v3M17 18h2v3" stroke="white" opacity="0.6"/>
+                            <rect x="6" y="4" width="12" height="8" rx="2" stroke="white" opacity="0.6"/>
                         </svg>
                     </a>
                     <button id="open-mobile-menu" type="button" class="inline-flex items-center p-2 ml-3 text-sm text-white md:hidden focus:outline-none focus:ring-0" aria-controls="navbar-default" aria-expanded="false">

@@ -3,10 +3,10 @@
 
         <!-- Tab switch (admin only) -->
         <div v-if="isAdmin" class="mb-4 flex border-b border-gray-200">
-            <button @click="activeTab = 'my'" :class="activeTab === 'my' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium border-b-2 transition">
+            <button @click="switchTab('my')" :class="activeTab === 'my' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium border-b-2 transition">
                 Moje urlopy
             </button>
-            <button @click="activeTab = 'all'; loadAdminData()" :class="activeTab === 'all' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium border-b-2 transition">
+            <button @click="switchTab('all')" :class="activeTab === 'all' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium border-b-2 transition">
                 Wszyscy pracownicy
             </button>
         </div>
@@ -154,10 +154,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="user in filteredAdminUsers" :key="user.id" class="border-t border-gray-100 even:bg-gray-50">
+                        <tr v-for="user in filteredAdminUsers" :key="user.id" class="border-t border-gray-100 even:bg-gray-50" :class="{ 'opacity-40': !user.is_active }">
                             <td class="px-3 py-1.5 text-gray-700">
                                 {{ user.name }}
-                                <span v-if="!adminEntitlements[user.id]?.has_employment_data" class="text-[9px] text-yellow-600 block">brak danych o stażu</span>
+                                <span v-if="!user.is_active" class="text-[9px] text-red-500 block">nieaktywny</span>
+                                <span v-else-if="!adminEntitlements[user.id]?.has_employment_data" class="text-[9px] text-yellow-600 block">brak danych o stażu</span>
                             </td>
                             <td class="px-3 py-1.5 text-center text-gray-500">
                                 <template v-if="adminEntitlements[user.id]?.has_employment_data">{{ formatTenure(adminEntitlements[user.id].tenure) }}</template>
@@ -396,11 +397,9 @@ export default {
             return this.filterableAdminUsers.length > 0 && this.selectedUserIds.length === this.filterableAdminUsers.length;
         },
         filteredAdminUsers() {
-            if (this.selectedUserIds.length === 0) return this.filterableAdminUsers;
             return this.filterableAdminUsers.filter(u => this.selectedUserIds.includes(u.id));
         },
         filteredAdminVacations() {
-            if (this.selectedUserIds.length === 0) return this.adminVacations;
             return this.adminVacations.filter(v => this.selectedUserIds.includes(v.user_id));
         },
     },
@@ -426,6 +425,11 @@ export default {
         getUserName(userId) {
             const user = this.adminUsers.find(u => u.id === userId);
             return user ? user.name : 'Pracownik #' + userId;
+        },
+        switchTab(tab) {
+            this.activeTab = tab;
+            window.location.hash = tab === 'all' ? '#all' : '#my';
+            if (tab === 'all') this.loadAdminData();
         },
         toggleAllEmployees() {
             if (this.allEmployeesSelected) {
@@ -495,7 +499,7 @@ export default {
 
         buildAdminCalendar() {
             const year = this.adminYear;
-            const selectedIds = this.selectedUserIds.length > 0 ? this.selectedUserIds : this.adminUsers.map(u => u.id);
+            const selectedIds = this.selectedUserIds;
             const vacByDate = {};
             this.adminVacations.forEach(v => {
                 if (!selectedIds.includes(v.user_id)) return;
@@ -686,7 +690,14 @@ export default {
         if (el && el.dataset.isAdmin === '1') {
             this.isAdmin = true;
         }
+        const hash = window.location.hash;
+        if (hash === '#all' && this.isAdmin) {
+            this.activeTab = 'all';
+        }
         this.getVacations();
+        if (this.activeTab === 'all') {
+            this.loadAdminData();
+        }
         this.requestDate = moment().format('YYYY-MM-DD');
     }
 }
