@@ -17,7 +17,17 @@
         <header>
             <nav class="bg-k4dark border-gray-200 px-2 sm:px-4 py-2.5">
                 <div class="container flex flex-wrap items-center justify-between mx-auto">
-                    <a href="{{ url('/') }}" class="flex items-center gap-2">
+                    <a href="{{ url('/') }}" class="flex items-center gap-3">
+                        <!-- Office desk/chair icon -->
+                        <svg class="w-8 h-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+                            <path d="M5 11a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-2z"/>
+                            <path d="M8 9V7a4 4 0 0 1 8 0v2"/>
+                            <path d="M12 14v3"/>
+                            <path d="M8 20h8"/>
+                            <path d="M10 17h4"/>
+                            <path d="M7 14l-2 6M17 14l2 6"/>
+                        </svg>
+                        <!-- K4 logo -->
                         <svg class="w-16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 750 750" xmlSpace="preserve">
                             <g>
                                 <path class="fill-k4pink" d="M29.1,177.8h68v141.7l106.6-141.7h85.2L139.5,374.8l151.3,198h-85.9L97,430.1v88.2H29.1V177.8z"></path>
@@ -30,11 +40,6 @@
                                 c-7.3-7.6-10.9-17.7-10.9-30c0-12.1,3.6-21.9,10.9-29.5c7.3-7.5,16.4-11.3,27.4-11.3c10.9,0,20,3.8,27.2,11.5
                                 c7.2,7.6,10.8,17.4,10.8,29.4C633.1,463.8,629.5,473.8,622.2,481.5z"></path>
                             </g>
-                        </svg>
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-60">
-                            <path d="M7 18v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2" stroke="white" opacity="0.6"/>
-                            <path d="M7 18H5v3M17 18h2v3" stroke="white" opacity="0.6"/>
-                            <rect x="6" y="4" width="12" height="8" rx="2" stroke="white" opacity="0.6"/>
                         </svg>
                     </a>
                     <button id="open-mobile-menu" type="button" class="inline-flex items-center p-2 ml-3 text-sm text-white md:hidden focus:outline-none focus:ring-0" aria-controls="navbar-default" aria-expanded="false">
