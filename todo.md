@@ -28,7 +28,9 @@
 - [x] Logowanie zmian stażu pracy (audit trail)
 - [x] Oznaczenie BETA
 - [ ] Konfiguracja rocznego limitu dni urlopowych (korekty, urlopy specjalne)
-- [ ] Przeniesienie urlopu z poprzedniego roku (zaległy urlop)
+- [x] Przeniesienie urlopu z poprzedniego roku (zaległy urlop)
+- [x] Ukrywanie nieaktywnych pracowników (domyślnie włączone)
+- [x] Upload dokumentów pracownika (dyplom, inne)
 - [ ] Raporty zbiorcze:
   - Zestawienie urlopów per pracownik (rok)
   - Wykorzystanie urlopów w firmie (procentowe)
@@ -37,13 +39,13 @@
 
 ### Odbiór dnia wolnego za święto w sobotę
 
-- [ ] Oznaczenie w kalendarzu usera i admina dni odebranych za sobotę świąteczną (inny kolor/badge)
-- [ ] Opcja we wniosku urlopowym: checkbox "dzień wolny za święto w sobotę" z wyborem, za które święto
-- [ ] Walidacja: liczba dostępnych dni do odbioru = pole `saturday_holiday_count` z tabeli `holiday_years` dla danego roku
-- [ ] Zliczanie odebranych dni za sobotę per pracownik per rok (osobno od puli urlopowej)
-- [ ] Wyświetlanie w podsumowaniu rocznym: ile dni do odbioru, ile odebranych, ile pozostałych
-- [ ] Widok admina: kolumna "Soboty" w tabeli uprawnień (odebrane/do odbioru)
-- [ ] Uwaga: dzień wolny przysługuje tylko za święto przypadające w sobotę, NIE w niedzielę (KP art. 130 §2)
+- [x] Oznaczenie w kalendarzu usera i admina dni odebranych za sobotę świąteczną (fioletowy kolor)
+- [x] Opcja we wniosku urlopowym: typ "Odbiór za sobotę" z wyborem konkretnego święta
+- [x] Walidacja: 1 dzień per święto, nie można odebrać dwa razy tego samego
+- [x] Zliczanie odebranych dni za sobotę per pracownik per rok (osobno od puli urlopowej)
+- [x] Wyświetlanie w podsumowaniu rocznym: ile dni do odbioru, ile odebranych, ile pozostałych
+- [x] Widok admina: kolumna "Soboty" w tabeli uprawnień (odebrane/do odbioru)
+- [x] Uwaga: dzień wolny przysługuje tylko za święto przypadające w sobotę, NIE w niedzielę (KP art. 130 §2)
 
 ### Panel pracownika
 
@@ -75,7 +77,7 @@
 
 ## 4. Usprawnienia techniczne
 
-- [ ] Dodanie relacji Eloquent (hasMany/belongsTo) zamiast ręcznych query
+- [x] Dodanie relacji Eloquent (hasMany/belongsTo) zamiast ręcznych query
 - [x] Kaskadowe usuwanie na poziomie bazy (foreign key constraints) - dodane w migracjach
 - [ ] Testy jednostkowe i integracyjne
 - [ ] CI/CD pipeline
