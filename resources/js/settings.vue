@@ -173,6 +173,33 @@
                             <p class="text-xs text-gray-400 italic">Zmiany stażu pracy są logowane.</p>
                         </div>
 
+                        <!-- Documents -->
+                        <div class="mt-4 border-t border-gray-200 pt-3">
+                            <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Dokumenty</p>
+                            <div v-if="empDocuments.length" class="space-y-1 mb-2">
+                                <div v-for="doc in empDocuments" :key="doc.id" class="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1.5">
+                                    <a :href="'/downloadDocument/' + doc.id" target="_blank" class="text-blue-600 hover:underline truncate flex-1">
+                                        {{ doc.original_name }}
+                                        <span class="text-gray-400 ml-1">({{ docTypeLabel(doc.type) }})</span>
+                                    </a>
+                                    <button @click="deleteDocument(doc.id)" class="ml-2 text-red-500 hover:text-red-700 text-xs flex-shrink-0">&#10005;</button>
+                                </div>
+                            </div>
+                            <div v-else class="text-xs text-gray-400 mb-2">Brak załączonych dokumentów.</div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <select v-model="docType" class="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+                                    <option value="diploma">Dyplom ukończenia studiów</option>
+                                    <option value="other">Inny dokument</option>
+                                </select>
+                                <label class="flex-1 flex items-center gap-2 text-xs text-blue-600 cursor-pointer border border-dashed border-blue-300 rounded px-2 py-1 hover:bg-blue-50 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    {{ docFile ? docFile.name : 'Wybierz plik...' }}
+                                    <input type="file" class="hidden" @change="onDocFileChange" ref="docFileInput" />
+                                </label>
+                                <button v-if="docFile" @click="uploadDocument()" class="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition">Wyślij</button>
+                            </div>
+                        </div>
+
                         <!-- Employment logs -->
                         <div v-if="empLogs.length" class="mt-4 border-t border-gray-200 pt-3">
                             <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Historia zmian</p>
@@ -229,6 +256,9 @@ export default {
             empEducationYears: 0,
             empEdCompletedDate: null,
             empLogs: [],
+            empDocuments: [],
+            docType: 'diploma',
+            docFile: null,
         };
     },
     computed: {
@@ -326,6 +356,43 @@ export default {
             };
             return labels[field] || field;
         },
+        docTypeLabel(type) {
+            return type === 'diploma' ? 'dyplom' : 'inny';
+        },
+        onDocFileChange(e) {
+            this.docFile = e.target.files[0] || null;
+        },
+        async uploadDocument() {
+            if (!this.docFile || !this.employeeId) return;
+            const formData = new FormData();
+            formData.append('file', this.docFile);
+            formData.append('user_id', this.employeeId);
+            formData.append('type', this.docType);
+            try {
+                await axios.post('/uploadDocument', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                this.docFile = null;
+                if (this.$refs.docFileInput) this.$refs.docFileInput.value = '';
+                await this.loadDocuments(this.employeeId);
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async loadDocuments(userId) {
+            try {
+                const response = await axios.get('/documents/' + userId);
+                this.empDocuments = response.data.documents || [];
+            } catch (e) {
+                this.empDocuments = [];
+            }
+        },
+        async deleteDocument(docId) {
+            try {
+                await axios.post('/deleteDocument', { documentId: docId });
+                this.empDocuments = this.empDocuments.filter(d => d.id !== docId);
+            } catch (e) {
+                console.error(e);
+            }
+        },
         async getHolidayYears() {
             try {
                 const response = await axios.get('/holidayYears');
@@ -374,6 +441,7 @@ export default {
                 this.empEducationYears = emp.education_years || 0;
                 this.empEdCompletedDate = emp.education_completed_date ? moment(emp.education_completed_date).format('YYYY-MM-DD') : null;
                 this.loadEmploymentLogs(employeeId);
+                this.loadDocuments(employeeId);
             }
         },
         closePopup() {
@@ -383,6 +451,9 @@ export default {
             this.loading = false;
             this.name = null;
             this.empLogs = [];
+            this.empDocuments = [];
+            this.docFile = null;
+            this.docType = 'diploma';
         },
         async loadEmploymentLogs(userId) {
             try {

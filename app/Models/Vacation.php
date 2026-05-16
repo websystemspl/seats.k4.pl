@@ -13,6 +13,7 @@ class Vacation extends Model
 
     protected $fillable = [
         'user_id', 'start_date', 'end_date', 'working_time',
+        'type', 'saturday_holiday_date',
         'request_date', 'days_off', 'carryover_from_year',
     ];
 

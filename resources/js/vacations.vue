@@ -21,6 +21,11 @@
                     <span class="text-gray-600" v-if="tenure">Staż: <span class="font-semibold">{{ formatTenure(tenure) }}</span></span>
                     <span class="text-gray-400 text-xs">(w tym 4 dni na żądanie)</span>
                 </div>
+                <div v-if="currentYearSaturdayTotal > 0" class="mt-1 flex flex-wrap gap-x-6 text-sm">
+                    <span class="text-gray-600">Soboty do odbioru: <span class="font-semibold text-purple-600">{{ currentYearSaturdayTotal }}</span></span>
+                    <span class="text-gray-600">Odebrane: <span class="font-semibold">{{ currentYearSaturdayUsed }}</span></span>
+                    <span class="text-gray-600">Pozostałe: <span class="font-semibold" :class="(currentYearSaturdayTotal - currentYearSaturdayUsed) > 0 ? 'text-purple-600' : 'text-gray-400'">{{ currentYearSaturdayTotal - currentYearSaturdayUsed }}</span></span>
+                </div>
             </div>
             <div v-else class="mb-4 p-3 bg-yellow-50 rounded border border-yellow-200">
                 <p class="text-sm text-yellow-700">Brak danych o stażu pracy. Wymiar urlopu zostanie wyliczony po uzupełnieniu danych przez administratora.</p>
@@ -36,7 +41,7 @@
                             <span class="text-xs text-gray-500">Wykorzystane: <span class="font-semibold text-gray-800">{{ vacationDaysByYear[year] || 0 }}</span></span>
                             <span v-if="hasEmploymentData" class="text-xs text-gray-500">Pozostało: <span class="font-semibold" :class="(entitlement - (vacationDaysByYear[year] || 0)) > 0 ? 'text-green-600' : 'text-red-600'">{{ entitlement - (vacationDaysByYear[year] || 0) }}</span></span>
                             <span v-if="carryover[year]" class="text-xs text-orange-600">Przeniesione z {{ carryover[year].from_year }}: <span class="font-semibold">{{ carryover[year].days }}</span> dni</span>
-                            <span class="text-xs text-gray-500">Do odbioru: <span v-if="holidayDaysByYear[year] !== null && holidayDaysByYear[year] !== undefined" class="font-semibold text-gray-800">{{ holidayDaysByYear[year] }}</span><span v-else class="text-gray-400">brak</span></span>
+                            <span v-if="holidayDaysByYear[year]" class="text-xs text-purple-600">Soboty: <span class="font-semibold">{{ saturdayReplacements[year] || 0 }}/{{ holidayDaysByYear[year] }}</span> odebranych</span>
                         </div>
                     </div>
                 </div>
@@ -69,6 +74,7 @@
                 </div>
                 <div class="mt-2 flex flex-wrap gap-3 text-[10px] text-gray-500">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-blue-500 inline-block"></span> Urlop</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-purple-500 inline-block"></span> Odbiór za sobotę</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-gray-200 inline-block"></span> Weekend</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-200 inline-block"></span> Święto</span>
                 </div>
@@ -81,6 +87,7 @@
                     <span>
                         <small class="text-gray-400">{{ (index + 1).toString().padStart(2, '0') }}.</small>
                         {{ formatDate(vacation.start_date) }} - {{ formatDate(vacation.end_date) }}
+                        <span v-if="vacation.type === 'saturday_replacement'" class="ml-1 text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">za sobotę {{ formatDate(vacation.saturday_holiday_date) }}</span>
                         <span v-if="vacation.carryover_from_year" class="ml-1 text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded font-medium">zaległy z {{ vacation.carryover_from_year }}</span>
                     </span>
                     <div class="flex gap-1">
@@ -143,6 +150,7 @@
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Zaległy</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Wykorzystane</th>
                             <th class="px-3 py-2 text-center text-gray-600 font-semibold">Pozostało</th>
+                            <th class="px-3 py-2 text-center text-purple-600 font-semibold">Soboty</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -166,6 +174,9 @@
                             <td class="px-3 py-1.5 text-center text-gray-700">{{ adminEntitlements[user.id]?.used ?? '-' }}</td>
                             <td class="px-3 py-1.5 text-center font-semibold" :class="(adminEntitlements[user.id]?.remaining ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'">
                                 {{ adminEntitlements[user.id]?.has_employment_data ? (adminEntitlements[user.id]?.remaining ?? '-') : '-' }}
+                            </td>
+                            <td class="px-3 py-1.5 text-center text-purple-600">
+                                {{ adminEntitlements[user.id]?.saturday_used || 0 }}/{{ adminSaturdayHolidayCount }}
                             </td>
                         </tr>
                     </tbody>
@@ -217,6 +228,7 @@
                             <td class="px-3 py-1.5 text-gray-600">{{ formatDate(vac.start_date) }}</td>
                             <td class="px-3 py-1.5 text-gray-600">{{ formatDate(vac.end_date) }}</td>
                             <td class="px-3 py-1.5">
+                                <span v-if="vac.type === 'saturday_replacement'" class="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">za sobotę {{ formatDate(vac.saturday_holiday_date) }}</span>
                                 <span v-if="vac.carryover_from_year" class="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded font-medium">zaległy z {{ vac.carryover_from_year }}</span>
                             </td>
                         </tr>
@@ -254,14 +266,35 @@
                         <h3 class="text-lg font-medium text-center text-gray-900 mb-4">Dodawanie urlopu</h3>
                         <div class="space-y-3">
                             <div>
+                                <label class="text-sm text-gray-700">Typ:</label>
+                                <div class="mt-1 flex gap-4">
+                                    <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                                        <input type="radio" v-model="vacationType" value="vacation" class="text-blue-600 focus:ring-blue-500" />
+                                        Urlop wypoczynkowy
+                                    </label>
+                                    <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                                        <input type="radio" v-model="vacationType" value="saturday_replacement" class="text-purple-600 focus:ring-purple-500" />
+                                        Odbiór za sobotę
+                                    </label>
+                                </div>
+                            </div>
+                            <div v-if="vacationType === 'saturday_replacement'">
+                                <label for="saturday_holiday" class="text-sm text-gray-700">Święto w sobotę:</label>
+                                <select class="mt-1 block w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white" v-model="saturdayHolidayDate" id="saturday_holiday">
+                                    <option value="">-- wybierz święto --</option>
+                                    <option v-for="h in availableSaturdayHolidays" :key="h" :value="h">{{ formatDate(h) }}</option>
+                                </select>
+                                <p class="mt-1 text-[10px] text-gray-400">Wybierz dzień wolny — data początku i końca muszą być tym samym dniem.</p>
+                            </div>
+                            <div>
                                 <label for="request_date" class="text-sm text-gray-700">Data wniosku:</label>
                                 <input type="date" class="mt-1 block w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" v-model="requestDate" id="request_date" />
                             </div>
                             <div>
-                                <label for="start_date" class="text-sm text-gray-700">Data początku urlopu:</label>
+                                <label for="start_date" class="text-sm text-gray-700">{{ vacationType === 'saturday_replacement' ? 'Dzień odbioru:' : 'Data początku urlopu:' }}</label>
                                 <input type="date" class="mt-1 block w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" v-model="startDate" id="start_date" />
                             </div>
-                            <div>
+                            <div v-if="vacationType !== 'saturday_replacement'">
                                 <label for="end_date" class="text-sm text-gray-700">Data końca urlopu:</label>
                                 <input type="date" class="mt-1 block w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" v-model="endDate" id="end_date" />
                             </div>
@@ -320,6 +353,10 @@ export default {
             calendarHolidays: [],
             carryover: {},
             showRules: false,
+            saturdayReplacements: {},
+            vacationType: 'vacation',
+            saturdayHolidayDate: '',
+            availableSaturdayHolidays: [],
 
             adminYear: new Date().getFullYear(),
             adminUsers: [],
@@ -329,6 +366,8 @@ export default {
             adminCalendarMonths: [],
             selectedUserIds: [],
             adminHideInactive: true,
+            adminSaturdayHolidayCount: 0,
+            adminSaturdayHolidays: [],
         };
     },
     computed: {
@@ -338,6 +377,14 @@ export default {
                 ...Object.keys(this.holidayDaysByYear)
             ]);
             return Array.from(years).map(Number).sort((a, b) => b - a);
+        },
+        currentYearSaturdayTotal() {
+            const year = new Date().getFullYear();
+            return this.holidayDaysByYear[year] || 0;
+        },
+        currentYearSaturdayUsed() {
+            const year = new Date().getFullYear();
+            return this.saturdayReplacements[year] || 0;
         },
         filterableAdminUsers() {
             if (this.adminHideInactive) {
@@ -396,12 +443,16 @@ export default {
         buildCalendar() {
             const year = this.calendarYear;
             const vacDates = new Set();
+            const satDates = new Set();
             this.vacations.forEach(v => {
                 const start = new Date(v.start_date);
                 const end = new Date(v.end_date);
+                const isSat = v.type === 'saturday_replacement';
                 for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                     if (d.getFullYear() === year) {
-                        vacDates.add(d.toISOString().slice(0, 10));
+                        const dateStr = d.toISOString().slice(0, 10);
+                        if (isSat) { satDates.add(dateStr); }
+                        else { vacDates.add(dateStr); }
                     }
                 }
             });
@@ -423,6 +474,7 @@ export default {
                         isWeekend: dow === 0 || dow === 6,
                         isHoliday: holidaySet.has(dateStr),
                         isVacation: vacDates.has(dateStr),
+                        isSaturdayReplacement: satDates.has(dateStr),
                     });
                 }
                 this.calendarMonths.push({
@@ -434,6 +486,7 @@ export default {
             }
         },
         dayClass(day) {
+            if (day.isSaturdayReplacement) return 'bg-purple-500 text-white font-semibold';
             if (day.isVacation) return 'bg-blue-500 text-white font-semibold';
             if (day.isHoliday) return 'bg-red-200 text-red-700';
             if (day.isWeekend) return 'bg-gray-200 text-gray-400';
@@ -514,7 +567,9 @@ export default {
                 this.hasEmploymentData = response.data.hasEmploymentData || false;
                 this.isAdmin = response.data.isAdmin || false;
                 this.carryover = response.data.carryover || {};
+                this.saturdayReplacements = response.data.saturdayReplacements || {};
                 this.loadCalendarHolidays();
+                this.loadSaturdayHolidays();
             } catch (e) {
                 console.error(e);
             }
@@ -531,6 +586,15 @@ export default {
             }
             this.buildCalendar();
         },
+        async loadSaturdayHolidays() {
+            try {
+                const year = new Date().getFullYear();
+                const response = await axios.get('/getSaturdayHolidays', { params: { year } });
+                this.availableSaturdayHolidays = response.data.saturdayHolidays || [];
+            } catch (e) {
+                this.availableSaturdayHolidays = [];
+            }
+        },
         async loadAdminData() {
             if (!this.isAdmin) return;
             try {
@@ -539,6 +603,8 @@ export default {
                 this.adminVacations = response.data.vacations || [];
                 this.adminHolidays = response.data.holidays || [];
                 this.adminEntitlements = response.data.entitlements || {};
+                this.adminSaturdayHolidayCount = response.data.saturdayHolidayCount || 0;
+                this.adminSaturdayHolidays = response.data.saturdayHolidays || [];
                 if (this.selectedUserIds.length === 0) {
                     this.selectedUserIds = this.adminUsers.filter(u => u.is_active).map(u => u.id);
                 }
@@ -556,15 +622,20 @@ export default {
             this.popup = false;
             this.action = null;
             this.errors = [];
+            this.vacationType = 'vacation';
+            this.saturdayHolidayDate = '';
         },
         async addVacation() {
             this.loading = true;
+            const isSatReplacement = this.vacationType === 'saturday_replacement';
             try {
                 const response = await axios.post('/addVacation', {
                     requestDate: this.requestDate,
                     startDate: this.startDate,
-                    endDate: this.endDate,
-                    workingTime: this.workingTime
+                    endDate: isSatReplacement ? this.startDate : this.endDate,
+                    workingTime: this.workingTime,
+                    type: this.vacationType,
+                    saturdayHolidayDate: isSatReplacement ? this.saturdayHolidayDate : null,
                 });
                 if (response.data.errors.length === 0) {
                     this.vacations = response.data.vacations;
@@ -572,6 +643,9 @@ export default {
                     this.vacationDaysByYearLoaded = true;
                     if (response.data.holidayDaysByYear) {
                         this.holidayDaysByYear = response.data.holidayDaysByYear;
+                    }
+                    if (response.data.saturdayReplacements) {
+                        this.saturdayReplacements = response.data.saturdayReplacements;
                     }
                     this.closePopup();
                     this.buildCalendar();
@@ -592,6 +666,9 @@ export default {
                     this.vacationDaysByYear = response.data.vacationDaysByYear || this.vacationDaysByYear;
                     if (response.data.holidayDaysByYear) {
                         this.holidayDaysByYear = response.data.holidayDaysByYear;
+                    }
+                    if (response.data.saturdayReplacements) {
+                        this.saturdayReplacements = response.data.saturdayReplacements;
                     }
                     this.buildCalendar();
                 }

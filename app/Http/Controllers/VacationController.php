@@ -34,11 +34,13 @@ class VacationController extends Controller
         $isAdmin = (bool) $user->is_admin;
 
         $carryover = $this->calculateCarryover($user->id, $vacationDaysByYear, $entitlement, $hasEmploymentData);
+        $saturdayReplacements = $this->countSaturdayReplacementsByYear($user->id);
 
         return response()->json(compact(
             'vacations', 'workingTime', 'vacationDaysByYear',
             'holidayDaysByYear', 'countVacationDays',
-            'tenure', 'entitlement', 'hasEmploymentData', 'isAdmin', 'carryover'
+            'tenure', 'entitlement', 'hasEmploymentData', 'isAdmin', 'carryover',
+            'saturdayReplacements'
         ));
     }
 
@@ -60,12 +62,14 @@ class VacationController extends Controller
         $holidays = $this->getHolidays($year, $year);
 
         $entitlements = [];
+        $saturdayReplacements = [];
         foreach ($users as $user) {
             $usedDays = $this->countVacationDaysByYearForUser($user->id, $year - 1, $year);
             $ent = $user->getVacationEntitlement();
             $hasData = (bool) $user->employment_start_date;
             $prevYearUsed = $usedDays[$year - 1] ?? 0;
             $carryoverFromPrev = $hasData ? max(0, $ent - $prevYearUsed) : null;
+            $satRepl = $this->countSaturdayReplacementsByYear($user->id, $year, $year);
 
             $entitlements[$user->id] = [
                 'tenure' => round($user->calculateTenureYears(), 1),
@@ -75,10 +79,16 @@ class VacationController extends Controller
                 'remaining' => $ent - ($usedDays[$year] ?? 0),
                 'carryover_from_prev' => $carryoverFromPrev,
                 'has_employment_data' => $hasData,
+                'saturday_used' => $satRepl[$year] ?? 0,
             ];
+            $saturdayReplacements[$user->id] = $satRepl;
         }
 
-        return response()->json(compact('users', 'vacations', 'holidays', 'entitlements', 'year'));
+        $holidayYear = HolidayYear::where('year', $year)->first();
+        $saturdayHolidayCount = $holidayYear ? $holidayYear->saturday_holiday_count : 0;
+        $saturdayHolidays = $this->getSaturdayHolidays($year);
+
+        return response()->json(compact('users', 'vacations', 'holidays', 'entitlements', 'year', 'saturdayHolidayCount', 'saturdayHolidays'));
     }
 
     public function updateCarryover(Request $request)
@@ -102,41 +112,65 @@ class VacationController extends Controller
     {
         $errors = [];
         $vacation = new Vacation();
-        if ($request->startDate <= $request->endDate) {
-            $vacations = Vacation::where('user_id', Auth::user()->id)->where('start_date', '<=', $request->endDate)->where('end_date', '>=', $request->startDate)->get();
-            if ($request->requestDate > $request->startDate) {
-                $errors[] = __('Data złożenia wniosku nie może być późniejsza niż data rozpoczęcia urlopu.');
-            } else if ($request->workingTime > 24 || $request->workingTime < 1) {
-                $errors[] = __('Nie można pracować więcej niż 24 godziny na dobę, ani krócej niż godzinę:)');
+        $type = $request->type ?? 'vacation';
+
+        if ($type === 'saturday_replacement') {
+            if (!$request->saturdayHolidayDate) {
+                $errors[] = __('Wybierz święto w sobotę, za które odbierasz dzień wolny.');
+            } elseif ($request->startDate !== $request->endDate) {
+                $errors[] = __('Odbiór za sobotę może obejmować tylko jeden dzień.');
             } else {
-                if ($vacations->count() == 0) {
-                    $presences = Presence::where('user_id', Auth::user()->id)
-                    ->whereBetween('date', [$request->startDate, $request->endDate])
-                    ->get();
-                    if ($presences->isNotEmpty()) {
-                        foreach ($presences as $presence) {
-                            $presence->delete();
-                        }
-                    }
-                    $vacation->user_id = Auth::user()->id;
-                    $vacation->request_date = $request->requestDate;
-                    $vacation->start_date = $request->startDate;
-                    $vacation->end_date = $request->endDate;
-                    $vacation->working_time = $request->workingTime;
-                    $vacation->save();
-                } else {
-                    $errors[] = __('Istnieje juz urlop w podanym terminie.');
+                $existing = Vacation::where('user_id', Auth::user()->id)
+                    ->where('type', 'saturday_replacement')
+                    ->where('saturday_holiday_date', $request->saturdayHolidayDate)
+                    ->first();
+                if ($existing) {
+                    $errors[] = __('Dzień wolny za to święto został już odebrany.');
                 }
             }
-        } else {
-            $errors[] = __('Data końca urlopu nie może być wcześniejsza niż data początku urlopu.');
         }
+
+        if (empty($errors)) {
+            if ($request->startDate <= $request->endDate) {
+                $vacations = Vacation::where('user_id', Auth::user()->id)->where('start_date', '<=', $request->endDate)->where('end_date', '>=', $request->startDate)->get();
+                if ($request->requestDate > $request->startDate) {
+                    $errors[] = __('Data złożenia wniosku nie może być późniejsza niż data rozpoczęcia urlopu.');
+                } else if ($request->workingTime > 24 || $request->workingTime < 1) {
+                    $errors[] = __('Nie można pracować więcej niż 24 godziny na dobę, ani krócej niż godzinę:)');
+                } else {
+                    if ($vacations->count() == 0) {
+                        $presences = Presence::where('user_id', Auth::user()->id)
+                        ->whereBetween('date', [$request->startDate, $request->endDate])
+                        ->get();
+                        if ($presences->isNotEmpty()) {
+                            foreach ($presences as $presence) {
+                                $presence->delete();
+                            }
+                        }
+                        $vacation->user_id = Auth::user()->id;
+                        $vacation->request_date = $request->requestDate;
+                        $vacation->start_date = $request->startDate;
+                        $vacation->end_date = $request->endDate;
+                        $vacation->working_time = $request->workingTime;
+                        $vacation->type = $type;
+                        $vacation->saturday_holiday_date = $type === 'saturday_replacement' ? $request->saturdayHolidayDate : null;
+                        $vacation->save();
+                    } else {
+                        $errors[] = __('Istnieje juz urlop w podanym terminie.');
+                    }
+                }
+            } else {
+                $errors[] = __('Data końca urlopu nie może być wcześniejsza niż data początku urlopu.');
+            }
+        }
+
         $vacations = Vacation::where('user_id', Auth::user()->id)->orderBy('start_date')->get();
         $vacationDaysByYear = $this->countVacationDaysByYearForUser(Auth::user()->id);
         $holidayDaysByYear = $this->getHolidayDaysByYear();
+        $saturdayReplacements = $this->countSaturdayReplacementsByYear(Auth::user()->id);
         $currentYear = Carbon::now()->year;
         $countVacationDays = $vacationDaysByYear[$currentYear] ?? 0;
-        return response()->json( compact('vacations', 'errors', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays'));
+        return response()->json(compact('vacations', 'errors', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays', 'saturdayReplacements'));
     }
 
     public function getAllUsersVacations(Request $request)
@@ -271,6 +305,7 @@ class VacationController extends Controller
         $rangeStart = Carbon::create($startYear, 1, 1);
         $rangeEnd = Carbon::create($currentYear, 12, 31);
         $vacations = Vacation::where('user_id', $userId)
+            ->where('type', 'vacation')
             ->where('end_date', '>=', $rangeStart->toDateString())
             ->where('start_date', '<=', $rangeEnd->toDateString())
             ->orderBy('start_date')
@@ -368,8 +403,60 @@ class VacationController extends Controller
         $vacations = Vacation::where('user_id', Auth::user()->id)->orderBy('start_date')->get();
         $vacationDaysByYear = $this->countVacationDaysByYearForUser(Auth::user()->id);
         $holidayDaysByYear = $this->getHolidayDaysByYear();
+        $saturdayReplacements = $this->countSaturdayReplacementsByYear(Auth::user()->id);
         $currentYear = Carbon::now()->year;
         $countVacationDays = $vacationDaysByYear[$currentYear] ?? 0;
-        return response()->json( compact('vacations', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays'));
+        return response()->json(compact('vacations', 'vacationDaysByYear', 'holidayDaysByYear', 'countVacationDays', 'saturdayReplacements'));
+    }
+
+    public function getSaturdayHolidaysForYear(Request $request)
+    {
+        $year = $request->input('year', Carbon::now()->year);
+        $saturdayHolidays = $this->getSaturdayHolidays($year);
+        return response()->json(compact('saturdayHolidays', 'year'));
+    }
+
+    private function countSaturdayReplacementsByYear(int $userId, ?int $startYear = null, ?int $endYear = null): array
+    {
+        $startYear = $startYear ?? 2024;
+        $endYear = $endYear ?? Carbon::now()->year;
+
+        $byYear = [];
+        for ($y = $startYear; $y <= $endYear; $y++) {
+            $byYear[$y] = 0;
+        }
+
+        $replacements = Vacation::where('user_id', $userId)
+            ->where('type', 'saturday_replacement')
+            ->whereYear('start_date', '>=', $startYear)
+            ->whereYear('start_date', '<=', $endYear)
+            ->get();
+
+        foreach ($replacements as $r) {
+            $year = Carbon::parse($r->start_date)->year;
+            if (array_key_exists($year, $byYear)) {
+                $byYear[$year]++;
+            }
+        }
+
+        return $byYear;
+    }
+
+    private function getSaturdayHolidays(int $year): array
+    {
+        $holidayYear = HolidayYear::where('year', $year)->first();
+        if (!$holidayYear || !is_array($holidayYear->holidays)) {
+            return [];
+        }
+
+        $saturdayHolidays = [];
+        foreach ($holidayYear->holidays as $dateStr) {
+            $date = Carbon::parse($dateStr);
+            if ($date->isSaturday()) {
+                $saturdayHolidays[] = $dateStr;
+            }
+        }
+
+        return $saturdayHolidays;
     }
 }

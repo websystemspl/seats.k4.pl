@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HolidayYearController;
 use App\Http\Controllers\PresenceController;
 use App\Http\Controllers\SettingsController;
@@ -42,3 +43,9 @@ Route::post('/getAllUsersVacations', [VacationController::class, 'getAllUsersVac
 Route::get('/getVacationCard/{id}', [VacationController::class, 'getVacationCard'])->middleware('auth');
 Route::post('/deleteVacation', [VacationController::class, 'deleteVacation'])->middleware('auth');
 Route::post('/updateCarryover', [VacationController::class, 'updateCarryover'])->middleware('auth');
+Route::get('/getSaturdayHolidays', [VacationController::class, 'getSaturdayHolidaysForYear'])->middleware('auth');
+
+Route::post('/uploadDocument', [DocumentController::class, 'upload'])->middleware('auth');
+Route::get('/documents/{userId}', [DocumentController::class, 'index'])->middleware('auth');
+Route::get('/downloadDocument/{id}', [DocumentController::class, 'download'])->middleware('auth');
+Route::post('/deleteDocument', [DocumentController::class, 'destroy'])->middleware('auth');

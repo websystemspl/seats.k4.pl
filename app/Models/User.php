@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->hasMany(EmploymentLog::class);
     }
 
+    public function documents()
+    {
+        return $this->hasMany(UserDocument::class);
+    }
+
     public function calculateTenureYears(): float
     {
         $today = Carbon::now();
