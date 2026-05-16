@@ -27,8 +27,31 @@
                     <span class="text-gray-600">Pozostałe: <span class="font-semibold" :class="(currentYearSaturdayTotal - currentYearSaturdayUsed) > 0 ? 'text-purple-600' : 'text-gray-400'">{{ currentYearSaturdayTotal - currentYearSaturdayUsed }}</span></span>
                 </div>
             </div>
-            <div v-else class="mb-4 p-3 bg-yellow-50 rounded border border-yellow-200">
-                <p class="text-sm text-yellow-700">Brak danych o stażu pracy. Wymiar urlopu zostanie wyliczony po uzupełnieniu danych przez administratora.</p>
+            <div v-else class="mb-4 p-4 bg-yellow-50 rounded border border-yellow-200">
+                <p class="text-sm text-yellow-700 mb-2">Brak danych o stażu pracy. Uzupełnij poniższe dane (jednorazowo), aby system wyliczył Twój wymiar urlopu.</p>
+                <div class="space-y-2">
+                    <div>
+                        <label class="text-xs text-gray-600">Data rozpoczęcia pracy w firmie:</label>
+                        <input type="date" v-model="selfEmpStartDate" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600">Ukończone wykształcenie:</label>
+                        <select v-model="selfEmpEducationYears" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white">
+                            <option :value="0">Brak / podstawowe</option>
+                            <option :value="3">Zasadnicza zawodowa (3 lata)</option>
+                            <option :value="4">Liceum ogólnokształcące (4 lata)</option>
+                            <option :value="5">Technikum (5 lat)</option>
+                            <option :value="6">Szkoła policealna (6 lat)</option>
+                            <option :value="8">Szkoła wyższa (8 lat)</option>
+                        </select>
+                    </div>
+                    <div v-if="selfEmpEducationYears > 0">
+                        <label class="text-xs text-gray-600">Data ukończenia nauki:</label>
+                        <input type="date" v-model="selfEmpEdCompletedDate" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <button @click="saveSelfEmployment()" :disabled="!selfEmpStartDate" class="mt-2 px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded shadow hover:bg-green-700 disabled:opacity-50 transition">Zapisz dane</button>
+                    <p v-if="selfEmpError" class="text-xs text-red-500 mt-1">{{ selfEmpError }}</p>
+                </div>
             </div>
 
             <!-- Year summaries -->
@@ -358,6 +381,10 @@ export default {
             vacationType: 'vacation',
             saturdayHolidayDate: '',
             availableSaturdayHolidays: [],
+            selfEmpStartDate: null,
+            selfEmpEducationYears: 0,
+            selfEmpEdCompletedDate: null,
+            selfEmpError: '',
 
             adminYear: new Date().getFullYear(),
             adminUsers: [],
@@ -680,6 +707,21 @@ export default {
                 console.error(e);
             }
             this.loading = false;
+        },
+        async saveSelfEmployment() {
+            this.selfEmpError = '';
+            try {
+                const response = await axios.post('/selfUpdateEmployment', {
+                    employment_start_date: this.selfEmpStartDate,
+                    education_years: parseInt(this.selfEmpEducationYears) || 0,
+                    education_completed_date: this.selfEmpEducationYears > 0 ? this.selfEmpEdCompletedDate : null,
+                });
+                this.hasEmploymentData = true;
+                this.tenure = response.data.user.tenure_years;
+                this.entitlement = response.data.user.vacation_entitlement;
+            } catch (e) {
+                this.selfEmpError = e.response?.data?.error || 'Błąd zapisu danych.';
+            }
         },
         getVacationCard(id) {
             window.open('/getVacationCard/' + id, '_blank');

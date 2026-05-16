@@ -34,6 +34,7 @@ Route::post('/deleteUser', [UserController::class, 'deleteUser'])->middleware('a
 Route::post('/editUser', [UserController::class, 'editUser'])->middleware('auth');
 Route::post('/updateOrder', [UserController::class, 'updateOrder'])->middleware('auth');
 Route::post('/updateEmployment', [UserController::class, 'updateEmployment'])->middleware('auth');
+Route::post('/selfUpdateEmployment', [UserController::class, 'selfUpdateEmployment'])->middleware('auth');
 Route::get('/employmentLogs/{userId}', [UserController::class, 'getEmploymentLogs'])->middleware('auth');
 
 Route::get('/getUserVacations', [VacationController::class, 'getUserVacations'])->middleware('auth');

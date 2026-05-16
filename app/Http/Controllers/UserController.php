@@ -93,6 +93,38 @@ class UserController extends Controller
         return response()->json(compact('user'));
     }
 
+    public function selfUpdateEmployment(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($user->employment_start_date) {
+            return response()->json(['error' => 'Dane zostały już uzupełnione. Skontaktuj się z administratorem.'], 403);
+        }
+
+        $fields = ['employment_start_date', 'education_years', 'education_completed_date'];
+
+        foreach ($fields as $field) {
+            if ($request->has($field)) {
+                $newValue = $request->$field;
+                EmploymentLog::create([
+                    'user_id' => $user->id,
+                    'admin_id' => $user->id,
+                    'field' => $field,
+                    'old_value' => null,
+                    'new_value' => $newValue,
+                ]);
+                $user->$field = $newValue;
+            }
+        }
+
+        $user->save();
+
+        $user->tenure_years = round($user->calculateTenureYears(), 1);
+        $user->vacation_entitlement = $user->getVacationEntitlement();
+
+        return response()->json(compact('user'));
+    }
+
     public function getEmploymentLogs(Request $request, $userId)
     {
         if (!auth()->user()->is_admin) {
