@@ -28,26 +28,36 @@
                 </div>
             </div>
             <div v-else class="mb-4 p-4 bg-yellow-50 rounded border border-yellow-200">
-                <p class="text-sm text-yellow-700 mb-2">Brak danych o stażu pracy. Uzupełnij poniższe dane (jednorazowo), aby system wyliczył Twój wymiar urlopu.</p>
-                <div class="space-y-2">
+                <p class="text-sm text-yellow-700 font-semibold mb-1">Uzupełnij dane o stażu pracy</p>
+                <p class="text-xs text-gray-600 mb-3">Wypełnij formularz jednorazowo, aby system wyliczył Twój wymiar urlopu. Po zapisaniu edycja możliwa tylko przez administratora.</p>
+                <div class="space-y-3">
                     <div>
-                        <label class="text-xs text-gray-600">Data rozpoczęcia pracy w firmie:</label>
+                        <label class="text-xs text-gray-700 font-medium">Data rozpoczęcia pierwszej pracy na umowę o pracę:</label>
                         <input type="date" v-model="selfEmpStartDate" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" />
+                        <p class="text-[10px] text-gray-400 mt-0.5">Data z pierwszej umowy o pracę (nie u nas, a w ogóle w karierze).</p>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-600">Ukończone wykształcenie:</label>
+                        <label class="text-xs text-gray-700 font-medium">Ukończone wykształcenie:</label>
                         <select v-model="selfEmpEducationYears" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white">
                             <option :value="0">Brak / podstawowe</option>
                             <option :value="3">Zasadnicza zawodowa (3 lata)</option>
                             <option :value="4">Liceum ogólnokształcące (4 lata)</option>
                             <option :value="5">Technikum (5 lat)</option>
                             <option :value="6">Szkoła policealna (6 lat)</option>
-                            <option :value="8">Szkoła wyższa (8 lat)</option>
+                            <option :value="8">Szkoła wyższa — licencjat, inżynier lub magister (8 lat)</option>
                         </select>
+                        <p v-if="selfEmpEducationYears == 8" class="text-[10px] text-blue-600 mt-0.5">Prześlij administratorowi skan/zdjęcie dyplomu ukończenia studiów.</p>
                     </div>
                     <div v-if="selfEmpEducationYears > 0">
-                        <label class="text-xs text-gray-600">Data ukończenia nauki:</label>
+                        <label class="text-xs text-gray-700 font-medium">Data ukończenia nauki (obrony/egzaminu):</label>
                         <input type="date" v-model="selfEmpEdCompletedDate" class="mt-0.5 block w-full max-w-xs px-3 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none" />
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[11px] text-gray-600">
+                        <p class="font-semibold text-gray-700 mb-1">Wymagane dokumenty (prześlij administratorowi):</p>
+                        <ul class="list-disc list-inside space-y-0.5">
+                            <li>Świadectwo pracy lub zaświadczenie potwierdzające datę rozpoczęcia pierwszej pracy</li>
+                            <li v-if="selfEmpEducationYears > 0">Dyplom/świadectwo ukończenia szkoły</li>
+                        </ul>
                     </div>
                     <button @click="saveSelfEmployment()" :disabled="!selfEmpStartDate" class="mt-2 px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded shadow hover:bg-green-700 disabled:opacity-50 transition">Zapisz dane</button>
                     <p v-if="selfEmpError" class="text-xs text-red-500 mt-1">{{ selfEmpError }}</p>
