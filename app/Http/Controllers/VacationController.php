@@ -20,6 +20,7 @@ class VacationController extends Controller
 
     public function getUserVacations(Request $request)
     {
+        $this->ensureHolidayYearsSynced();
         $user = Auth::user();
         $vacations = Vacation::where('user_id', $user->id)->orderBy('start_date')->get();
         $workingTime = $user->working_time;
@@ -50,6 +51,7 @@ class VacationController extends Controller
             return response()->json(['error' => 'Brak uprawnień'], 403);
         }
 
+        $this->ensureHolidayYearsSynced();
         $year = $request->input('year', Carbon::now()->year);
 
         $users = User::orderBy('order')->get();
@@ -440,6 +442,41 @@ class VacationController extends Controller
         }
 
         return $byYear;
+    }
+
+    private function ensureHolidayYearsSynced(): void
+    {
+        $currentYear = Carbon::now()->year;
+        $years = [$currentYear, $currentYear + 1];
+
+        foreach ($years as $year) {
+            if (HolidayYear::where('year', $year)->exists()) {
+                continue;
+            }
+            try {
+                $holidaysApi = "https://date.nager.at/api/v3/PublicHolidays/$year/PL";
+                $holidaysData = @file_get_contents($holidaysApi);
+                if (false === $holidaysData) continue;
+
+                $holidaysArray = json_decode($holidaysData, true);
+                if (!is_array($holidaysArray)) continue;
+
+                $dates = array_values(array_unique(array_column($holidaysArray, 'date')));
+                $saturdayCount = 0;
+                foreach ($dates as $date) {
+                    if (Carbon::parse($date)->isSaturday()) $saturdayCount++;
+                }
+
+                HolidayYear::create([
+                    'year' => $year,
+                    'holidays' => $dates,
+                    'saturday_holiday_count' => $saturdayCount,
+                    'synced_at' => Carbon::now(),
+                ]);
+            } catch (\Throwable $e) {
+                // API niedostępne — pomiń
+            }
+        }
     }
 
     private function getSaturdayHolidays(int $year): array

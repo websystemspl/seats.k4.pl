@@ -59,6 +59,10 @@
                             <li v-if="selfEmpEducationYears > 0">Dyplom/świadectwo ukończenia szkoły</li>
                         </ul>
                     </div>
+                    <div class="p-2 bg-red-50 rounded border border-red-200 text-[11px] text-red-700">
+                        <p class="font-bold">Uwaga: dane można zapisać tylko raz!</p>
+                        <p>Po kliknięciu „Zapisz" nie będzie możliwości samodzielnej edycji. Upewnij się, że wszystkie daty i wykształcenie są poprawne. Ewentualne korekty tylko przez administratora.</p>
+                    </div>
                     <button @click="saveSelfEmployment()" :disabled="!selfEmpStartDate" class="mt-2 px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded shadow hover:bg-green-700 disabled:opacity-50 transition">Zapisz dane</button>
                     <p v-if="selfEmpError" class="text-xs text-red-500 mt-1">{{ selfEmpError }}</p>
                 </div>
